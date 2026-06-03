@@ -12,14 +12,17 @@ local looper = function(thread)
 end
 
 
-local thread = task.new("test", looper)
-local thread2 = task.new("lalalala", looper, true) -- starts paused due to true
+local thread1, r = task.new("test1", looper)
+local thread2 = task.new("test2", looper, true) -- starts paused due to true
 
 -- thread already paused, so no run
 print(task.status(thread2)) -- r: paused
 
 -- resumes the thread
 task.resume(thread2)
+
+-- task.kill(thread1)
+-- print(task.status(thread)) -- dead, process killed
 
 task.handler() -- handler
 print("end")
