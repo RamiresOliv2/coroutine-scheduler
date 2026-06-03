@@ -29,12 +29,12 @@ task.new = function(name, f, paused)
     local ok, r = coroutine.resume(threads[#threads].c, threads[#threads])
   else return pid end
 
-  if ok then
-    return pid
-  else
+  if ok == false then
     threads[#threads].error = r
     return nil, r
   end
+
+  return pid
 end
 
 task.resume = function(pid)
@@ -70,6 +70,7 @@ task.kill = function(pid)
 
   if thread then
     thread.status = "dead"
+    thread.error = "process killed"
     return true
   end
 
