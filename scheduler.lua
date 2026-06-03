@@ -4,31 +4,43 @@ local threads = {}
 
 local findThread = function(pid)
   for i, v in pairs(threads) do
-      if v.pid == pid then return v end
+      if v.pid == pid then return v, i end
   end
 
   return nil
 end
 
-task.new = function(name, f)
+task.new = function(name, f, paused)
+  local s = "running"
+
+  if paused == true then s = "paused" end
+
   local pid = #threads + 1
   table.insert(threads, {
     name = name,
     c = coroutine.create(f),
     pid = pid,
-    status = "running",
+    status = s,
     created = os.time(),
+    error = nil
   })
 
-  local ok, r = coroutine.resume(threads[#threads].c, threads[#threads])
+  if not paused then 
+    local ok, r = coroutine.resume(threads[#threads].c, threads[#threads])
+  else return pid end
 
   if ok then
     return pid
-  else return ok, r end
+  else
+    threads[#threads].error = r
+    return nil, r
+  end
 end
 
 task.resume = function(pid)
   local thread = findThread(pid)
+
+  if thread.status == "dead" then return false, "thread dead." end
 
   if thread then
     thread.status = "running"
@@ -39,13 +51,29 @@ end
 task.pause = function(pid)
   local thread = findThread(pid)
 
+  if thread.status == "dead" then return false, "thread dead." end
+
   if thread then
     thread.status = "paused"
     return true
   end
 end
 
-task.loop = function()
+task.status = function(pid)
+  local thread = findThread(pid)
+  
+  if thread then
+    return thread.status, thread.error
+  end
+
+  return nil
+end
+
+task.halt = function(...)
+  coroutine.yield(...)
+end
+
+task.handler = function()
   while true do
     for _, thread in pairs(threads) do
       local s = coroutine.status(thread.c)
@@ -53,7 +81,12 @@ task.loop = function()
         if thread.status == "running" then
           local ok, r = coroutine.resume(thread.c, thread)
           if not ok then
-            print("after yield err:", r)
+            print("[thread-" .. thread.name .. "] yield err:", r)
+            thread.error = r
+            thread.status = "dead"
+          end
+
+          if ok and r == "stop" then
             thread.status = "dead"
           end
         end
@@ -62,7 +95,7 @@ task.loop = function()
       end
     end
 
-  os.execute("sleep 0.1") -- poor try to not blow up
+  os.execute("sleep 0.1")
   end
 end
 
