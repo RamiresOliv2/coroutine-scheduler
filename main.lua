@@ -6,13 +6,20 @@ local looper = function(thread)
   while true do
     i = i + 1
     print(iam .. ": I am in a loop!! x" .. tostring(i))
-    coroutine.yield() -- halt to handler deal with it!
+    task.halt() -- halt to handler deal with it!
+    -- asdasd() -- simple error
   end
 end
 
 
 local thread = task.new("test", looper)
-local thread2 = task.new("lalalala", looper)
+local thread2 = task.new("lalalala", looper, true) -- starts paused due to true
 
-toilet.handler()
+-- thread already paused, so no run
+print(task.status(thread2)) -- r: paused
+
+-- resumes the thread
+task.resume(thread2)
+
+task.handler() -- handler
 print("end")
