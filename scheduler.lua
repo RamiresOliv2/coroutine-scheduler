@@ -40,12 +40,14 @@ end
 task.resume = function(pid)
   local thread = findThread(pid)
 
-  if thread.status == "dead" then return false, "thread dead." end
+  if thread.status == "dead" then return false, "thread already dead." end
 
   if thread then
     thread.status = "running"
     return true
   end
+
+  return false
 end
 
 task.pause = function(pid)
@@ -57,6 +59,21 @@ task.pause = function(pid)
     thread.status = "paused"
     return true
   end
+
+  return false
+end
+
+task.kill = function(pid)
+  local thread = findThread(pid)
+
+  if thread.status == "dead" then return false, "thread dead." end
+
+  if thread then
+    thread.status = "dead"
+    return true
+  end
+
+  return false
 end
 
 task.status = function(pid)
